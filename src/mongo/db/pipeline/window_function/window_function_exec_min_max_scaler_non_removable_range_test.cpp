@@ -162,11 +162,8 @@ TEST_F(WindowFunctionExecMinMaxScalerNonRemovableRangeTest, AccumulateMultiplePa
     ASSERT_VALUE_EQ(Value(0), mgr.getNext(Document{{"a", 10}, {"y", 1}, {"key", 3}}));
 }
 
-using WindowFunctionExecMinMaxScalerNonRemovableRangeTestDeathTest =
-    WindowFunctionExecMinMaxScalerNonRemovableRangeTest;
-DEATH_TEST_F(WindowFunctionExecMinMaxScalerNonRemovableRangeTestDeathTest,
-             GetWindowValueThrowsWithNonNumericInput,
-             "10487006") {
+TEST_F(WindowFunctionExecMinMaxScalerNonRemovableRangeTest,
+       GetWindowValueThrowsWithNonNumericInput) {
     const auto docs = std::deque<DocumentSource::GetNextResult>{
         Document{{"a", Value("invalid_string"sv)}, {"y", 1}, {"key", 1}},
         Document{{"a", 4}, {"y", 5}, {"key", 1}}};
@@ -192,7 +189,10 @@ DEATH_TEST_F(WindowFunctionExecMinMaxScalerNonRemovableRangeTestDeathTest,
         createRangeBounds(WindowBounds::Unbounded{}, Value(2)),
         &_tracker["output"],
         {Value(0), Value(1)});
-    mgr.getWindowValue(Document{{"a", Value("invalid_string"sv)}, {"y", 1}, {"key", 1}});
+    ASSERT_THROWS_CODE(
+        mgr.getWindowValue(Document{{"a", Value("invalid_string"sv)}, {"y", 1}, {"key", 1}}),
+        AssertionException,
+        10487006);
 }
 
 TEST_F(WindowFunctionExecMinMaxScalerNonRemovableRangeTest,

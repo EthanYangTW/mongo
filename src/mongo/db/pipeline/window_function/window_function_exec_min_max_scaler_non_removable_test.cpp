@@ -127,11 +127,7 @@ TEST_F(WindowFunctionExecMinMaxScalerNonRemovableTest, AccumulateMultiplePartiti
     ASSERT_VALUE_EQ(Value(0), mgr.getNext(Document{{"a", 3}, {"key", 3}}));
 }
 
-using WindowFunctionExecMinMaxScalerNonRemovableTestDeathTest =
-    WindowFunctionExecMinMaxScalerNonRemovableTest;
-DEATH_TEST_F(WindowFunctionExecMinMaxScalerNonRemovableTestDeathTest,
-             GetWindowValueThrowsWithNonNumericInput,
-             "10487003") {
+TEST_F(WindowFunctionExecMinMaxScalerNonRemovableTest, GetWindowValueThrowsWithNonNumericInput) {
     const auto docs = std::deque<DocumentSource::GetNextResult>{
         Document{{"a", Value("invalid_string"sv)}, {"key", 1}}, Document{{"a", 2}, {"key", 1}}};
     auto mock = exec::agg::MockStage::createForTest(std::move(docs), getExpCtx());
@@ -149,7 +145,9 @@ DEATH_TEST_F(WindowFunctionExecMinMaxScalerNonRemovableTestDeathTest,
                                                           WindowBounds::Unbounded{},
                                                           &_tracker["output"],
                                                           {Value(0), Value(1)});
-    mgr.getWindowValue(Document{{"a", Value("invalid_string"sv)}, {"key", 1}});
+    ASSERT_THROWS_CODE(mgr.getWindowValue(Document{{"a", Value("invalid_string"sv)}, {"key", 1}}),
+                       AssertionException,
+                       10487003);
 }
 
 TEST_F(WindowFunctionExecMinMaxScalerNonRemovableTest, UpdateWindowValueThrowsWithNonNumericInput) {

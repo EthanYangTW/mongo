@@ -49,6 +49,18 @@ public:
                 "There must always be documents in the current window for $minMaxScaler",
                 !_values.empty());
 
+        // Values enter a sliding window before they become the current document (e.g. with a
+        // window of [0, 1]), so the check above on 'current' does not cover every value in the
+        // window. Numeric Values sort contiguously, so if both ends of the ordered set are numeric
+        // then every value in the window is numeric.
+        uassert(10487007,
+                str::stream()
+                    << "'input' argument to $minMaxScaler must evaluate to a numeric type for "
+                       "every document in the window, got: "
+                    << typeName(_values.begin()->value().getType()) << " and "
+                    << typeName(_values.rbegin()->value().getType()),
+                _values.begin()->value().numeric() && _values.rbegin()->value().numeric());
+
         // First value in ordered set is the min of the window.
         // Last value in the ordered set is the max of the window.
         const min_max_scaler::MinAndMax windowMinAndMax(_values.begin()->value(),

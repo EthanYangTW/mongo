@@ -12,6 +12,8 @@
 
 namespace mongo {
 namespace {
+using namespace std::literals::string_view_literals;
+
 class WindowFunctionMinMaxScalerTest : public AggregationContextFixture {
 public:
     WindowFunctionMinMaxScalerTest()
@@ -75,6 +77,22 @@ TEST_F(WindowFunctionMinMaxScalerTest, SingleValueAddedIntoWindow) {
         minMaxScaler->add(randomValue);
     }
     ASSERT_VALUE_EQ(minMaxScaler->getValue(randomValue), Value(sMin));
+}
+
+TEST_F(WindowFunctionMinMaxScalerTest, GetValueThrowsWhenNonCurrentWindowValueIsNonNumeric) {
+    // A sliding window such as [0, 1] holds values for documents that have not yet been current,
+    // so a non-numeric value can be in the window while the current value is numeric.
+    minMaxScaler->add(Value(1));
+    minMaxScaler->add(Value("str"sv));
+    ASSERT_THROWS_CODE(minMaxScaler->getValue(Value(1)), AssertionException, 10487007);
+}
+
+TEST_F(WindowFunctionMinMaxScalerTest, GetValueThrowsWhenCurrentValueIsOutsideWindow) {
+    // The current value is evaluated separately from the values added to the window, so a
+    // non-deterministic 'input' expression can produce a value outside the window's range.
+    minMaxScaler->add(Value(1));
+    minMaxScaler->add(Value(2));
+    ASSERT_THROWS_CODE(minMaxScaler->getValue(Value(5)), AssertionException, 9459903);
 }
 
 TEST_F(WindowFunctionMinMaxScalerTest, GetValueOnWindowMin) {

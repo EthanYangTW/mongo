@@ -378,6 +378,38 @@ expectFailureWithArgs(
 );
 
 expectFailureWithArgs(
+    // Removable document based bounds where the non-numeric value belongs to a document that is in
+    // the window but is not yet the current document (the current document's value is numeric).
+    {
+        sortBy: {_id: 1},
+        output: {
+            "relativeXValue": {
+                $minMaxScaler: {input: {$cond: [{$eq: ["$_id", nDocs]}, "$str", "$x"]}},
+                window: {documents: [0, 1]},
+            },
+        },
+    },
+    10487007,
+);
+
+expectFailureWithArgs(
+    // A non-deterministic 'input' evaluates differently when a document enters the window and when
+    // it is the current document. With one document per partition the window min and max are the
+    // first evaluation, so the second evaluation falls outside the window.
+    {
+        partitionBy: "$_id",
+        sortBy: {_id: 1},
+        output: {
+            "relativeXValue": {
+                $minMaxScaler: {input: {$rand: {}}},
+                window: {documents: ["unbounded", "unbounded"]},
+            },
+        },
+    },
+    9459903,
+);
+
+expectFailureWithArgs(
     // Range based bounds cannot have a descending sortBy field.
     {
         sortBy: {y: -1},

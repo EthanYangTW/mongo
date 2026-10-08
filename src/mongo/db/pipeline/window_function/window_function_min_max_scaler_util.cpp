@@ -16,9 +16,13 @@ Value computeResult(const Value& currentValue,
             currentValue.numeric() && windowMinAndMax.min().numeric() &&
                 windowMinAndMax.max().numeric() && sMinAndMax.min().numeric() &&
                 sMinAndMax.max().numeric());
-    tassert(9459903,
+    // The executors evaluate 'input' once when a document enters the window and again when that
+    // document is current, so a non-deterministic 'input' expression (e.g. $rand) can produce a
+    // current value outside the window's min/max. This is a user error, not an internal one.
+    uassert(9459903,
             "The current value must be bounded (inclusively) between the min and max "
-            "of the window. Current value = " +
+            "of the window; the 'input' argument to $minMaxScaler must be deterministic. "
+            "Current value = " +
                 currentValue.toString() +
                 ", window min/max = "
                 "[" +

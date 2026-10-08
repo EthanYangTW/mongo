@@ -48,9 +48,11 @@ public:
 
         const Value& inputValue =
             _input->evaluate(*current, &_input->getExpressionContext()->variables);
-        // This is a tassert, not a uassert, because the same value should always already be
-        // present in the current window, where it would have been caught as a non-numeric.
-        tassert(10487006,
+        // 'input' is evaluated again here for the current document. For a deterministic
+        // expression the same value was already validated when it entered the window, but a
+        // non-deterministic expression (e.g. $function) may produce a different value now, so this
+        // must be a user-facing error.
+        uassert(10487006,
                 str::stream()
                     << "'input' argument to $minMaxScaler must evaluate to a numeric type, got: "
                     << typeName(inputValue.getType()),

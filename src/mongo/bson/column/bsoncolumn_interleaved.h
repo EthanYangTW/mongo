@@ -484,7 +484,7 @@ const char* BlockBasedInterleavedDecompressor::decompressGeneral(
                 control += result.size;
                 uassert(ErrorCodes::InvalidBSONColumn,
                         "Expecting a next control byte, but buffer has ended",
-                        _control < _end);
+                        control < _end);
                 decodingStateElem = result.element;
             }
 
