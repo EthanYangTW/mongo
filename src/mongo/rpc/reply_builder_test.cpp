@@ -127,6 +127,21 @@ TEST(LegacyReplyBuilder, CommandError) {
     ASSERT_BSONOBJ_EQ(parsed.getCommandReply(), body);
 }
 
+TEST(LegacyReply, RejectsMessageShorterThanReplyHeader) {
+    // The transport layer only guarantees a 16-byte message header. An OP_REPLY whose body is
+    // shorter than the fixed QueryResult layout must be rejected rather than read past the end of
+    // the buffer.
+    auto buf = SharedBuffer::allocate(MsgData::MsgDataHeaderSize);
+    MsgData::View header(buf.get());
+    header.setLen(MsgData::MsgDataHeaderSize);
+    header.setId(1);
+    header.setResponseToMsgId(0);
+    header.setOperation(opReply);
+    Message msg(std::move(buf));
+
+    ASSERT_THROWS_CODE(rpc::LegacyReply{&msg}, DBException, ErrorCodes::BadValue);
+}
+
 TEST(OpMsgReplyBuilder, CommandError) {
     const Status status(ErrorCodes::InvalidLength, "Response payload too long");
     BSONObj metadata = buildMetadata();

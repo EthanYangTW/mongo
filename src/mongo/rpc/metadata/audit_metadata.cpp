@@ -65,6 +65,11 @@ void setAuditMetadata(OperationContext* opCtx,
             }
 
             if (user || !roles.empty()) {
+                // '$impersonatedRoles' is only meaningful alongside '$impersonatedUser'. Reject a
+                // roles-only payload rather than dereferencing an empty optional.
+                uassert(ErrorCodes::BadValue,
+                        "$impersonatedRoles requires $impersonatedUser to be specified",
+                        user.has_value());
                 rpc::AuditUserAttrs::set(opCtx, *user, roles, true /* isImpersonating */);
             }
         }

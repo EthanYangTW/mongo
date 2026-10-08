@@ -23,6 +23,13 @@ using namespace std::literals::string_view_literals;
 LegacyReply::LegacyReply(const Message* message) {
     invariant(message->operation() == opReply);
 
+    // The transport layer only guarantees that a message is at least MsgData::MsgDataHeaderSize
+    // bytes long. Make sure the full OP_REPLY header is present before reading any of its fields.
+    uassert(ErrorCodes::BadValue,
+            str::stream() << "Got legacy command reply that is too short: expected at least "
+                          << sizeof(QueryResult::Layout) << " bytes but got " << message->size(),
+            static_cast<size_t>(message->size()) >= sizeof(QueryResult::Layout));
+
     QueryResult::View qr = message->singleData().view2ptr();
 
     // should be checked by caller.

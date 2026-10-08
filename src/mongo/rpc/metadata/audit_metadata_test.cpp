@@ -239,6 +239,24 @@ TEST_F(AuditMetadataTest, ReadAuditMetadataClientOnly) {
     ASSERT_FALSE(auditUserAttrs);
 }
 
+TEST_F(AuditMetadataTest, ReadAuditMetadataRolesWithoutUserRejected) {
+    // '$impersonatedRoles' without '$impersonatedUser' parses successfully (the user field is
+    // optional) but must be rejected when applied, rather than dereferencing the missing user.
+    BSONObj dollarAudit =
+        BSON("$impersonatedRoles" << BSON_ARRAY(BSON("role" << kRoleName << "db" << kDBName)));
+    AuditMetadata parsedDollarAudit =
+        AuditMetadata::parse(dollarAudit, IDLParserContext{kImpersonationMetadataSectionName});
+    GenericArguments requestArgs;
+    requestArgs.setDollarAudit(parsedDollarAudit);
+
+    boost::optional<rpc::ImpersonatedClientSessionGuard> clientSessionGuard;
+    ASSERT_THROWS_CODE(rpc::readRequestMetadata(opCtx(), requestArgs, false, clientSessionGuard),
+                       DBException,
+                       ErrorCodes::BadValue);
+    ASSERT_FALSE(clientSessionGuard.has_value());
+    ASSERT_FALSE(rpc::AuditUserAttrs::get(opCtx()));
+}
+
 TEST_F(AuditMetadataTest, WriteAuditMetadata) {
     setUpTestData();
 
